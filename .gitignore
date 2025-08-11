@@ -1,0 +1,17 @@
+# colcon / ROS 2
+build/
+install/
+log/
+.colcon-cache/
+
+# dentro do ws e pacotes
+autodrive_devkit/ws/build/
+autodrive_devkit/ws/install/
+autodrive_devkit/ws/log/
+autodrive_devkit/ws/src/**/build/
+autodrive_devkit/ws/src/**/install/
+autodrive_devkit/ws/src/**/log/
+
+# Python
+**/__pycache__/
+*.pyc
