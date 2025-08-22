@@ -27,21 +27,43 @@ Este fork adapta o repositório oficial **AutoDRIVE-F1TENTH-Sim-Racing** para um
 
 ---
 
+
+---
+
 ## Pré-requisitos
 
-- Ubuntu + Docker (e, se for usar GPU, NVIDIA Container Toolkit configurado).
-- Display X11 liberado para GUIs em container:
+- Ubuntu 22.04 + Docker + Docker Compose v2.
+- Se for usar GPU, instale e configure o **NVIDIA Container Toolkit**:
 
   ```bash
-  xhost +local:root
-  ```
+  distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+    | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+  curl -fsSL https://nvidia.github.io/libnvidia-container/ubuntu22.04/libnvidia-container.list \
+    | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
+    | sudo tee /etc/apt/sources.list.d/libnvidia-container.list
+
+  sudo apt-get update
+  sudo apt-get install -y nvidia-container-toolkit
+  sudo nvidia-ctk runtime configure --runtime=docker
+  sudo systemctl restart docker
+
+Verifique:
+
+docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
+
+Liberar X11 para GUIs (RViz, gedit, etc.):
+
+xhost +local:root
+
 
 ## Como Rodar do Zero
 
 # 1) clone
 
 ```bash
-git clone <URL-DO-FORK> AutoDRIVE-F1TENTH-Sim-Racing
+git clone https://github.com/escuderia-poliposition-usp/AutoDRIVE-F1TENTH-Sim-Racing.git 
 cd AutoDRIVE-F1TENTH-Sim-Racing
 ```
 
@@ -108,26 +130,28 @@ Se preferir, você pode ignorar o pacote Python no colcon e instalar em modo edi
 
   ```bash
     services:
-    devkit:
+      devkit:
         build:
-        context: .
-        dockerfile: autodrive_devkit.Dockerfile
+          context: .
+          dockerfile: autodrive_devkit.Dockerfile
         image: autodrive_f1tenth_api:dev
         container_name: autodrive_f1tenth_api
         network_mode: host
         ipc: host
         privileged: true
-        gpus: all
         environment:
-        - DISPLAY=${DISPLAY}
-        - XAUTHORITY=${XAUTHORITY:-}
+          - NVIDIA_VISIBLE_DEVICES=all
+          - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+          - DISPLAY=${DISPLAY}
+          - XAUTHORITY=${XAUTHORITY:-}
         volumes:
-        - /tmp/.X11-unix:/tmp/.X11-unix:rw
-        - ./autodrive_devkit/ws:/home/autodrive_devkit/ws:rw
-        - ./.colcon-cache:/home/autodrive_devkit/ws/.colcon-cache
+          - /tmp/.X11-unix:/tmp/.X11-unix:rw
+          - ./autodrive_devkit/ws:/home/autodrive_devkit/ws:rw
+          - ./.colcon-cache:/home/autodrive_devkit/ws/.colcon-cache
         working_dir: /home/autodrive_devkit/ws
         restart: unless-stopped
         command: ["bash", "-lc", "tail -f /dev/null"]
+
   ```
 
 ## Diferenças principais vs. upstream
