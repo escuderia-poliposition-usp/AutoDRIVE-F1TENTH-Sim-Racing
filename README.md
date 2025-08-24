@@ -1,4 +1,31 @@
-# F1TENTH AutoDRIVE — Fork da equipe (Dev Workspace + Compose)
+# 1 BUILD DO SIMULADOR 
+
+  ```bash
+  docker build \
+    --tag autodriveecosystem/autodrive_f1tenth_sim:latest \
+    -f autodrive_simulator.Dockerfile \
+    .
+  ```
+
+## 1.1- HABILITAR ACESSOS
+
+```bash
+xhost +local:root
+```
+
+## 1.2 GERAR CONTAINER (APLICAÇÃO)
+
+```bash
+docker run --name autodrive_f1tenth_sim --rm -it \
+  --entrypoint /bin/bash \
+  --network host --ipc host \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTHORITY \
+  --privileged --gpus all \
+  autodriveecosystem/autodrive_f1tenth_sim:latest
+```
+
+# 2 F1TENTH AutoDRIVE — Fork da equipe (Dev Workspace + Compose)
 
 Este fork adapta o repositório oficial **AutoDRIVE-F1TENTH-Sim-Racing** para um fluxo de desenvolvimento mais rápido:
 
@@ -60,20 +87,20 @@ xhost +local:root
 
 ## Como Rodar do Zero
 
-# 1) clone
+# A) clone
 
 ```bash
 git clone https://github.com/escuderia-poliposition-usp/AutoDRIVE-F1TENTH-Sim-Racing.git 
 cd AutoDRIVE-F1TENTH-Sim-Racing
 ```
 
-# 2) habilitar X11 (para RViz/gedit etc.)
+# B) habilitar X11 (para RViz/gedit etc.)
 
   ```bash
   xhost +local:root
   ```
 
-# 3) build da imagem e subir o container
+# C) build da imagem e subir o container
 
   ```bash
     docker compose down
@@ -82,13 +109,13 @@ cd AutoDRIVE-F1TENTH-Sim-Racing
     docker compose ps    # deve mostrar autodrive_f1tenth_api: Up
   ```
 
-# 4) entrar no container
+# D) entrar no container
 
   ```bash
     docker compose exec devkit bash
   ```
 
-# 5) compilar o workspace
+# E) compilar o workspace
 
   ```bash
     source /opt/ros/humble/setup.bash
@@ -98,13 +125,13 @@ cd AutoDRIVE-F1TENTH-Sim-Racing
     source install/setup.bash
   ```
 
-# 6) smoke test (URDF)
+# F) smoke test (URDF)
 
   ```bash
     ros2 launch f1tenth_description bringup.launch.py gui:=true
   ```
 
-## Fluxo de desenvolvimento (rápido)
+## 2.1 Fluxo de desenvolvimento (rápido)
 
 Edite arquivos em autodrive_devkit/ws/src/... no host.
 
@@ -116,9 +143,7 @@ No container:
     source install/setup.bash
   ```
 
-Relance seus launch e pronto (sem rebuildar a imagem).
-
-Se preferir, você pode ignorar o pacote Python no colcon e instalar em modo editável (efeito idêntico ao symlink):
+### Relance seus launch e pronto (sem rebuildar a imagem). Se preferir, você pode ignorar o pacote Python no colcon e instalar em modo editável (efeito idêntico ao symlink):
 
   ```bash
     touch src/autodrive_f1tenth/COLCON_IGNORE
@@ -193,6 +218,78 @@ A imagem já inclui dbus-x11. Lembre-se do xhost +local:root.
 
   ```bash
     sudo chown -R $USER:$USER autodrive_devkit/ws .colcon-cache
+  ```
+
+# 3 Acessar o ambiente e Listar tópicos
+
+  ```bash
+    docker exec -it autodrive_f1tenth_api bash
+  ```
+
+# 4 ATALHOS DE TERMINAL (aliases)
+
+## Para evitar digitar comandos longos, crie aliases no seu shell.
+
+## 4.1 Como habilitar
+
+### Abra seu ~/.bashrc (ou ~/.zshrc se usar zsh):
+
+  ```bash
+    gedit ~/.bashrc
+  ```
+
+### Cole no final do arquivo:
+
+    ```bash
+    # --- F1TENTH aliases ---------------------------------------------------------
+
+    # (Requer: estar dentro do diretório da repo com compose.yaml)
+    alias dup_dev='docker compose up -d'
+    alias dex_dev='docker compose exec devkit bash'
+
+    # Build da imagem do simulador (Dockerfile: autodrive_simulator.Dockerfile)
+    alias dup_sim="docker build \
+      --tag autodriveecosystem/autodrive_f1tenth_sim:latest \
+      -f autodrive_simulator.Dockerfile \
+      ."
+
+    # Rodar o container do simulador com X11 e GPU
+    alias dex_sim='docker run --name autodrive_f1tenth_sim --rm -it \
+      --entrypoint /bin/bash \
+      --network host --ipc host \
+      -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+      -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTHORITY \
+      --privileged --gpus all \
+      autodriveecosystem/autodrive_f1tenth_sim:latest'
+
+    # ---------------------------------------------------------------------------
+  ```
+
+### Recarregue o shell 
+
+  ```bash
+    source ~/.bashrc
+  ```
+
+## Uso Rápido 
+
+## Carregar Simulador 
+
+  ```bash
+  xhost +local:root        # faça uma vez por sessão gráfica
+  dup_sim                  # build da imagem do simulador
+  dex_sim                  # entra no container do simulador
+  # dentro do container:
+  cd /home/autodrive_simulator
+  ./AutoDRIVE\ Simulator.x86_64
+  ```
+
+## Carregar Devkit (em outro terminal)
+
+  ```bash
+  cd ~/AutoDRIVE-F1TENTH-Sim-Racing
+  dup_dev                  # sobe o devkit
+  dex_dev                  # entra no devkit
   ```
 
 ## Licença e crédito
