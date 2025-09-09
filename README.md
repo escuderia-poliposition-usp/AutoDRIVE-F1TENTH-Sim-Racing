@@ -240,38 +240,71 @@ A imagem já inclui dbus-x11. Lembre-se do xhost +local:root.
 
 ## 4.1 Como habilitar
 
-### Abra seu ~/.bashrc (ou ~/.zshrc se usar zsh):
-
-  ```bash
-    gedit ~/.bashrc
-  ```
-
-### Cole no final do arquivo:
 
     ```bash
-    # --- F1TENTH aliases ---------------------------------------------------------
 
-    # (Requer: estar dentro do diretório da repo com compose.yaml)
-    alias dup_dev='docker compose up -d'
-    alias dex_dev='docker compose exec devkit bash'
+	# === F1TENTH — instalar/atualizar aliases (host) — versão sem here-doc ===
+	set -e
 
-    # Build da imagem do simulador (Dockerfile: autodrive_simulator.Dockerfile)
-    alias dup_sim="docker build \
-      --tag autodriveecosystem/autodrive_f1tenth_sim:latest \
-      -f autodrive_simulator.Dockerfile \
-      ."
+	# 1) Detecta RC (Zsh → ~/.zshrc ; Bash → ~/.bashrc)
+	if [ -n "${ZSH_VERSION:-}" ] || [ "$(basename -- "${SHELL:-}")" = "zsh" ]; then
+	  RC="${ZDOTDIR:-$HOME}/.zshrc"
+	else
+	  RC="$HOME/.bashrc"
+	fi
 
-    # Rodar o container do simulador com X11 e GPU
-    alias dex_sim='docker run --name autodrive_f1tenth_sim --rm -it \
-      --entrypoint /bin/bash \
-      --network host --ipc host \
-      -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-      -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTHORITY \
-      --privileged --gpus all \
-      autodriveecosystem/autodrive_f1tenth_sim:latest'
+	# 2) Backup
+	mkdir -p "$(dirname "$RC")"
+	touch "$RC"
+	BK="${RC}.bak.$(date +%Y%m%d_%H%M%S)"
+	cp -f "$RC" "$BK" >/dev/null 2>&1 || true
+	echo "[INFO] Backup do RC em: $BK"
 
-    # ---------------------------------------------------------------------------
-  ```
+	# 3) Remove bloco antigo
+	awk 'BEGIN{p=1} /^# BEGIN F1TENTH ALIASES$/{p=0} {if(p)print} /^# END F1TENTH ALIASES$/{p=1}' "$RC" > "$RC.tmp" && mv "$RC.tmp" "$RC"
+
+	# 4) Anexa bloco novo (via printf, sem here-doc)
+	printf '%s\n' \
+	'# BEGIN F1TENTH ALIASES' \
+	'# Requer estar no diretório da repo com compose.yml quando usar dup_dev/dex_dev.' \
+	'' \
+	"# Sobe/entra no devkit (Docker Compose)" \
+	"alias dup_dev='docker compose up -d'" \
+	"alias dex_dev='docker compose exec devkit bash'" \
+	'' \
+	"# Build da imagem do simulador (Dockerfile: autodrive_simulator.Dockerfile)" \
+	"alias dup_sim='docker build \\ " \
+	"  --tag autodriveecosystem/autodrive_f1tenth_sim:latest \\ " \
+	"  -f autodrive_simulator.Dockerfile \\ " \
+	"  .'" \
+	'' \
+	"# Executa o simulador com GUI dentro do container" \
+	"# 1) Faz xhost (host) e monta o XAUTHORITY do host para root do container" \
+	"# 2) Expõe /dev/dri para OpenGL (se disponível)" \
+	"alias dex_sim=' \\ " \
+	"  command -v xhost >/dev/null 2>&1 && xhost +si:localuser:root >/dev/null 2>&1 || true; \\ " \
+	"  docker run --name autodrive_f1tenth_sim --rm -it \\ " \
+	"    --entrypoint /bin/bash \\ " \
+	"    --network host --ipc host \\ " \
+	"    -e DISPLAY=\${DISPLAY} \\ " \
+	"    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \\ " \
+	"    -e XAUTHORITY=\${XAUTHORITY:-\$HOME/.Xauthority} \\ " \
+	"    -v \${XAUTHORITY:-\$HOME/.Xauthority}:/root/.Xauthority:ro \\ " \
+	"    -v /dev/dri:/dev/dri \\ " \
+	"    --privileged --gpus all \\ " \
+	"    autodriveecosystem/autodrive_f1tenth_sim:latest'" \
+	'# END F1TENTH ALIASES' >> "$RC"
+
+	# 5) Recarrega RC e confirma
+	if [ -n "${BASH_VERSION:-}" ]; then . "$RC"; elif [ -n "${ZSH_VERSION:-}" ]; then . "$RC"; fi
+	echo "[OK] Aliases instalados. Disponíveis: dup_dev, dex_dev, dup_sim, dex_sim"
+	type dup_dev 2>/dev/null || true
+	type dex_dev 2>/dev/null || true
+	type dup_sim 2>/dev/null || true
+	type dex_sim 2>/dev/null || true
+
+
+     ```
 
 ### Recarregue o shell 
 
