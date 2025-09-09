@@ -25,6 +25,14 @@ docker run --name autodrive_f1tenth_sim --rm -it \
   autodriveecosystem/autodrive_f1tenth_sim:latest
 ```
 
+## 1.3 ACESSAR O SIMULADOR
+
+```bash
+xhost +local:root
+cd /home/autodrive_simulator
+./AutoDRIVE\ Simulator.x86_64
+```
+
 # 2 F1TENTH AutoDRIVE — Fork da equipe (Dev Workspace + Compose)
 
 Este fork adapta o repositório oficial **AutoDRIVE-F1TENTH-Sim-Racing** para um fluxo de desenvolvimento mais rápido:
