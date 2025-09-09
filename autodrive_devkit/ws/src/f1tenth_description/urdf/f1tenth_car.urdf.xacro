@@ -1,21 +1,22 @@
 <?xml version="1.0"?>
 <robot name="f1tenth_car" xmlns:xacro="http://ros.org/wiki/xacro">
+
   <!-- Propriedades (dimensões) em metros -->
-  <xacro:property name="wheel_radius" value="0.034"/>       <!-- 3.4 cm :contentReference[oaicite:5]{index=5} -->
-  <xacro:property name="wheel_width"  value="0.023"/>       <!-- 2.3 cm :contentReference[oaicite:6]{index=6} -->
-  <xacro:property name="half_wheelbase" value="0.13"/>      <!-- Metade de 26 cm :contentReference[oaicite:7]{index=7} -->
-  <xacro:property name="half_track" value="0.0835"/>        <!-- Metade de ~16.7 cm (centro a centro das rodas) -->
-  <xacro:property name="chassis_length" value="0.38"/>      <!-- 38 cm :contentReference[oaicite:8]{index=8} -->
-  <xacro:property name="chassis_width"  value="0.125"/>     <!-- 12.5 cm :contentReference[oaicite:9]{index=9} -->
-  <xacro:property name="chassis_thickness" value="0.014"/>  <!-- 1.4 cm :contentReference[oaicite:10]{index=10} -->
-  <xacro:property name="top_chassis_width" value="0.101"/>  <!-- 10.1 cm :contentReference[oaicite:11]{index=11} -->
-  <xacro:property name="top_chassis_thickness" value="0.002"/> <!-- 0.2 cm :contentReference[oaicite:12]{index=12} -->
-  <xacro:property name="ground_clearance" value="0.003"/>   <!-- 0.3 cm do chão ao chassi inferior :contentReference[oaicite:13]{index=13} -->
-  <xacro:property name="top_chassis_height" value="0.069"/> <!-- 6.9 cm do chão ao topo do chassi sup. :contentReference[oaicite:14]{index=14} -->
-  <xacro:property name="lidar_diameter" value="0.038"/>     <!-- 3.8 cm :contentReference[oaicite:15]{index=15} -->
-  <xacro:property name="lidar_height" value="0.07"/>        <!-- 7 cm :contentReference[oaicite:16]{index=16} -->
-  <xacro:property name="lidar_offset_x" value="0.10"/>      <!-- ~9 cm atrás do para-choque frontal (0.19-0.10 = 0.09 m):contentReference[oaicite:17]{index=17} -->
-  <xacro:property name="lidar_base_z" value="0.073"/>       <!-- Base do LiDAR ~0.4 cm acima do topo do chassi sup. (para altura total ~14.3 cm):contentReference[oaicite:18]{index=18} -->
+  <xacro:property name="wheel_radius" value="0.034"/>       <!-- 3.4 cm -->
+  <xacro:property name="wheel_width"  value="0.023"/>       <!-- 2.3 cm -->
+  <xacro:property name="half_wheelbase" value="0.13"/>      <!-- L total = 0.26 m -->
+  <xacro:property name="half_track" value="0.0835"/>        <!-- ~16.7 cm / 2 -->
+  <xacro:property name="chassis_length" value="0.38"/>      <!-- 38 cm -->
+  <xacro:property name="chassis_width"  value="0.125"/>     <!-- 12.5 cm -->
+  <xacro:property name="chassis_thickness" value="0.014"/>  <!-- 1.4 cm -->
+  <xacro:property name="top_chassis_width" value="0.101"/>  <!-- 10.1 cm -->
+  <xacro:property name="top_chassis_thickness" value="0.002"/> <!-- 0.2 cm -->
+  <xacro:property name="ground_clearance" value="0.003"/>   <!-- 0.3 cm -->
+  <xacro:property name="top_chassis_height" value="0.069"/> <!-- 6.9 cm -->
+  <xacro:property name="lidar_diameter" value="0.038"/>     <!-- 3.8 cm -->
+  <xacro:property name="lidar_height" value="0.07"/>        <!-- 7 cm -->
+  <xacro:property name="lidar_offset_x" value="0.10"/>      <!-- ~0.09 m atrás da dianteira -->
+  <xacro:property name="lidar_base_z" value="0.073"/>       <!-- base do LiDAR -->
 
   <!-- Link principal do chassi (base_link) -->
   <link name="base_link">
@@ -36,18 +37,17 @@
         <box size="${chassis_length} ${top_chassis_width} ${top_chassis_thickness}"/>
       </geometry>
       <material name="TransparentBlue">
-        <color rgba="0.3 0.5 1.0 0.5"/>  <!-- azul translúcido -->
+        <color rgba="0.3 0.5 1.0 0.5"/>
       </material>
     </visual>
-    <!-- Geometria de colisão (opcional, usando caixa englobante do chassi inteiro) -->
+    <!-- Geometria de colisão (caixa englobante) -->
     <collision>
       <origin xyz="0 0 ${ground_clearance + (top_chassis_height)/2}" rpy="0 0 0"/>
       <geometry>
-        <!-- Caixa cobrindo todo o volume do robô aproximado -->
         <box size="${chassis_length} ${chassis_width} ${top_chassis_height}"/>
       </geometry>
     </collision>
-    <!-- Inércia aproximada do chassi (massa ~2 kg distribuída) -->
+    <!-- Inércia aproximada do chassi (massa ~2 kg) -->
     <inertial>
       <mass value="2.0"/>
       <origin xyz="0 0 ${top_chassis_height/2}" rpy="0 0 0"/>
@@ -55,11 +55,41 @@
     </inertial>
   </link>
 
-  <!-- Links e juntas para as 4 rodas -->
-  <!-- Roda Dianteira Esquerda -->
+  <!-- ========== MANGAS DE EIXO (esterço dianteiro) ========== -->
+  <link name="steer_front_left_link">
+    <inertial>
+      <mass value="0.02"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+  </link>
+  <joint name="joint_steer_front_left" type="revolute">
+    <parent link="base_link"/>
+    <child link="steer_front_left_link"/>
+    <origin xyz="${half_wheelbase} ${half_track} ${wheel_radius}" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5.0" lower="-0.7" upper="0.7" velocity="2.0"/>
+  </joint>
+
+  <link name="steer_front_right_link">
+    <inertial>
+      <mass value="0.02"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+  </link>
+  <joint name="joint_steer_front_right" type="revolute">
+    <parent link="base_link"/>
+    <child link="steer_front_right_link"/>
+    <origin xyz="${half_wheelbase} -${half_track} ${wheel_radius}" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="5.0" lower="-0.7" upper="0.7" velocity="2.0"/>
+  </joint>
+
+  <!-- ========== Rodas ========== -->
+  <!-- Dianteira Esquerda -->
   <link name="wheel_front_left">
     <visual>
-      <!-- Cylinder axis along Y (rotate 90deg about X to align eixo de rotação) -->
       <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
         <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
@@ -81,13 +111,13 @@
     </inertial>
   </link>
   <joint name="joint_wheel_front_left" type="continuous">
-    <parent link="base_link"/>
+    <parent link="steer_front_left_link"/>
     <child link="wheel_front_left"/>
-    <origin xyz="${half_wheelbase} ${half_track} ${wheel_radius}" rpy="0 0 0"/>
-    <axis xyz="0 1 0"/>  <!-- eixo de rotação: eixo Y (esquerda-direita) -->
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
   </joint>
 
-  <!-- Roda Dianteira Direita -->
+  <!-- Dianteira Direita -->
   <link name="wheel_front_right">
     <visual>
       <origin xyz="0 0 0" rpy="1.5708 0 0"/>
@@ -109,13 +139,13 @@
     </inertial>
   </link>
   <joint name="joint_wheel_front_right" type="continuous">
-    <parent link="base_link"/>
+    <parent link="steer_front_right_link"/>
     <child link="wheel_front_right"/>
-    <origin xyz="${half_wheelbase} -${half_track} ${wheel_radius}" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
   </joint>
 
-  <!-- Roda Traseira Esquerda -->
+  <!-- Traseira Esquerda -->
   <link name="wheel_rear_left">
     <visual>
       <origin xyz="0 0 0" rpy="1.5708 0 0"/>
@@ -143,7 +173,7 @@
     <axis xyz="0 1 0"/>
   </joint>
 
-  <!-- Roda Traseira Direita -->
+  <!-- Traseira Direita -->
   <link name="wheel_rear_right">
     <visual>
       <origin xyz="0 0 0" rpy="1.5708 0 0"/>
@@ -171,7 +201,7 @@
     <axis xyz="0 1 0"/>
   </joint>
 
-  <!-- Link do LiDAR (sensor no topo frontal) -->
+  <!-- Link do LiDAR -->
   <link name="laser_link">
     <visual>
       <origin xyz="0 0 ${lidar_height/2}" rpy="0 0 0"/>
@@ -200,9 +230,8 @@
     <origin xyz="${lidar_offset_x} 0 ${lidar_base_z}" rpy="0 0 0"/>
   </joint>
 
-  <!-- Link da IMU (fixo no chassi, centro do robô) -->
+  <!-- Link da IMU -->
   <link name="imu_link">
-    <!-- sem geometria visual -->
     <inertial>
       <mass value="0.01"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -214,4 +243,23 @@
     <child link="imu_link"/>
     <origin xyz="0 0 ${top_chassis_height/2}" rpy="0 0 0"/>
   </joint>
+
+  <!-- ============= GAZEBO: Plugin Dynamic-Actuator ============= -->
+  <gazebo>
+    <plugin name="f1tenth_interface_plugin" filename="libf1tenth_interface_plugin.so">
+      <steer_fl_joint>joint_steer_front_left</steer_fl_joint>
+      <steer_fr_joint>joint_steer_front_right</steer_fr_joint>
+      <wheel_rl_joint>joint_wheel_rear_left</wheel_rl_joint>
+      <wheel_rr_joint>joint_wheel_rear_right</wheel_rr_joint>
+
+      <steer_topic>/autodrive/f1tenth_1/steering_command</steer_topic>
+      <throttle_topic>/autodrive/f1tenth_1/throttle_command</throttle_topic>
+      <brake_topic>/autodrive/f1tenth_1/brake_command</brake_topic>
+
+      <k_speed>2.0</k_speed>                 <!-- m/s @ 100% throttle -->
+      <wheel_radius>0.034</wheel_radius>
+      <steer_limit_rad>0.698</steer_limit_rad> <!-- ~40° -->
+    </plugin>
+  </gazebo>
+
 </robot>
