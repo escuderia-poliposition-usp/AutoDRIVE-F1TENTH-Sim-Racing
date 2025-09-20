@@ -15,6 +15,8 @@ services:
       - DISPLAY=${DISPLAY}
       - XAUTHORITY=${XAUTHORITY:-}
 
+
+
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./autodrive_devkit/ws:/home/autodrive_devkit/ws:rw
