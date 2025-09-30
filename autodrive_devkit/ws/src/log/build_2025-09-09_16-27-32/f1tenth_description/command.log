@@ -1,0 +1,1 @@
+Invoking command in '/home/autodrive_devkit/ws/src/build/f1tenth_description': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/autodrive_devkit/ws/src/f1tenth_description -DCMAKE_INSTALL_PREFIX=/home/autodrive_devkit/ws/src/install/f1tenth_description

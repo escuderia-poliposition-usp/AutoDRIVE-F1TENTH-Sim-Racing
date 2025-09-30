@@ -1,229 +1,328 @@
-# AutoDRIVE-F1TENTH Sim-Racing
+# 1 BUILD DO SIMULADOR 
 
-![Github Stars](https://img.shields.io/github/stars/AutoDRIVE-Ecosystem/AutoDRIVE-F1TENTH-Sim-Racing?style=flat&color=blue&label=stars&logo=github&logoColor=white)
-![Github Forks](https://img.shields.io/github/forks/AutoDRIVE-Ecosystem/AutoDRIVE-F1TENTH-Sim-Racing?style=flat&color=blue&label=forks&logo=github&logoColor=white)
-![Github Downloads](https://img.shields.io/github/downloads/AutoDRIVE-Ecosystem/AutoDRIVE-F1TENTH-Sim-Racing/total?style=flat&color=blue&label=downloads&logo=github&logoColor=white)
-[![Sim Docker Stars](https://badgen.net/docker/stars/autodriveecosystem/autodrive_f1tenth_sim?icon=docker&label=sim%20stars)](https://hub.docker.com/r/autodriveecosystem/autodrive_f1tenth_sim/)
-[![Sim Docker Pulls](https://badgen.net/docker/pulls/autodriveecosystem/autodrive_f1tenth_sim?icon=docker&label=sim%20pulls)](https://hub.docker.com/r/autodriveecosystem/autodrive_f1tenth_sim/)
-[![API Docker Stars](https://badgen.net/docker/stars/autodriveecosystem/autodrive_f1tenth_api?icon=docker&label=api%20stars)](https://hub.docker.com/r/autodriveecosystem/autodrive_f1tenth_api/)
-[![API Docker Pulls](https://badgen.net/docker/pulls/autodriveecosystem/autodrive_f1tenth_api?icon=docker&label=api%20pulls)](https://hub.docker.com/r/autodriveecosystem/autodrive_f1tenth_api/)
+  ```bash
+  docker build \
+    --tag autodriveecosystem/autodrive_f1tenth_sim:latest \
+    -f autodrive_simulator.Dockerfile \
+    .
+  ```
 
-![AutoDRIVE-F1TENTH Sim-Racing](Banner.png)
-
-F1TENTH Digital Twin Autonomous Sim-Racing League using AutoDRIVE Ecosystem
-
-> [!NOTE]
-> - The setup has been only tested on the [Ubuntu](https://ubuntu.com) operating system.
-> - It is assumed that [Docker](https://docs.docker.com/engine/install) is installed.
-> - It is assumed that if the Docker container is to take advantage of an NVIDIA GPU, the host machine has been properly configured by installing the necessary NVIDIA GPU drivers and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html).
-
-## AutoDRIVE Simulator Container
-
-> [!NOTE]
-> The simulator executable must be placed inside [`/autodrive_simulator`](/autodrive_simulator) directory. This repository ships with an examplar working simulator executable, which can be updated as necessary.
-
-### Build:
+## 1.1- HABILITAR ACESSOS
 
 ```bash
-docker build --tag autodriveecosystem/autodrive_f1tenth_sim:<TAG> -f autodrive_simulator.Dockerfile .
+xhost +local:root
 ```
 
-### Run:
+## 1.2 GERAR CONTAINER (APLICAÇÃO)
 
 ```bash
-xhost local:root
-docker run --name autodrive_f1tenth_sim --rm -it --entrypoint /bin/bash --network=host --ipc=host -v /tmp/.X11-unix:/tmp.X11-umix:rw --env DISPLAY --privileged --gpus all autodriveecosystem/autodrive_f1tenth_sim:<TAG>
+docker run --name autodrive_f1tenth_sim --rm -it \
+  --entrypoint /bin/bash \
+  --network host --ipc host \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTHORITY \
+  --privileged --gpus all \
+  autodriveecosystem/autodrive_f1tenth_sim:latest
 ```
 
-### Push:
-
-1. Run the image you created in the previous step inside a container:
-```bash
-xhost local:root
-docker run --name autodrive_f1tenth_sim --rm -it --entrypoint /bin/bash --network=host --ipc=host -v /tmp/.X11-unix:/tmp.X11-umix:rw --env DISPLAY --privileged --gpus all autodriveecosystem/autodrive_f1tenth_sim:<TAG>
-```
-
-2. In a new terminal window, list all containers and make a note of the desired `CONTAINER ID`:
-```bash
-docker ps -a
-```
-
-3. Commit changes to Docker Hub:
-```bash
-docker commit -m "AutoDRIVE-F1TENTH-Sim-Racing" -a "AutoDRIVE Ecosystem" <CONTAINER ID> autodriveecosystem/autodrive_f1tenth_sim:<TAG>
-```
-
-4. Login to Docker Hub:
-```bash
-docker login
-```
-
-5. Push the container to Docker Hub, once done, you should be able to see your repository on Docker Hub:
-```bash
-docker push autodriveecosystem/autodrive_f1tenth_sim:<TAG>
-```
-
-## AutoDRIVE Devkit Container
-
-> [!NOTE]
-> The devkit package(s) must be placed inside [`/autodrive_devkit`](/autodrive_devkit) directory. This repository ships with an examplar working devkit package, which can be updated as necessary.
-
-### Build:
+## 1.3 ACESSAR O SIMULADOR
 
 ```bash
-docker build --tag autodriveecosystem/autodrive_f1tenth_api:<TAG> -f autodrive_devkit.Dockerfile .
+xhost +local:root
+cd /home/autodrive_simulator
+./AutoDRIVE\ Simulator.x86_64
 ```
 
-### Run:
+# 2 F1TENTH AutoDRIVE — Fork da equipe (Dev Workspace + Compose)
+
+Este fork adapta o repositório oficial **AutoDRIVE-F1TENTH-Sim-Racing** para um fluxo de desenvolvimento mais rápido:
+
+- Workspace **colcon** em `autodrive_devkit/ws/src/` (múltiplos pacotes lado a lado).
+- **Dockerfile DEV** sem copiar código (código entra via **bind-mount**).
+- **Pins** de ferramentas Python (`pip`/`setuptools`/`wheel`/`packaging`) para o `--symlink-install` funcionar com `ament_python`.
+- **compose.yaml** para subir o container e compilar com um comando.
+- Pacotes Nav2 instalados na imagem (APT): `nav2_bringup`, `slam_toolbox`, `robot_state_publisher`, `joint_state_publisher`, `xacro`, etc.
+
+> O README oficial foi movido para `docs/UPSTREAM_README.md`.
+
+---
+
+## Estrutura do repo (resumo)
+
+├── README.md
+├── compose.yaml
+├── autodrive_devkit.Dockerfile # imagem DEV (não copia código)
+├── autodrive_simulator/
+├── autodrive_simulator.Dockerfile
+└── autodrive_devkit/
+└── ws/
+└── src/
+├── autodrive_f1tenth/ # ament_python (nós/bridge/launch/rviz)
+└── f1tenth_description/ # ament_cmake (URDF/xacro/launch)
+
+---
+
+
+---
+
+## Pré-requisitos
+
+- Ubuntu 22.04 + Docker + Docker Compose v2.
+- Se for usar GPU, instale e configure o **NVIDIA Container Toolkit**:
+
+  ```bash
+  distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+    | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+  curl -fsSL https://nvidia.github.io/libnvidia-container/ubuntu22.04/libnvidia-container.list \
+    | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
+    | sudo tee /etc/apt/sources.list.d/libnvidia-container.list
+
+  sudo apt-get update
+  sudo apt-get install -y nvidia-container-toolkit
+  sudo nvidia-ctk runtime configure --runtime=docker
+  sudo systemctl restart docker
+
+Verifique:
+
+docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
+
+Liberar X11 para GUIs (RViz, gedit, etc.):
+
+xhost +local:root
+
+
+## Como Rodar do Zero
+
+# A) clone
 
 ```bash
-xhost local:root
-docker run --name autodrive_f1tenth_api --rm -it --entrypoint /bin/bash --network=host --ipc=host -v /tmp/.X11-unix:/tmp.X11-umix:rw --env DISPLAY --privileged --gpus all autodriveecosystem/autodrive_f1tenth_api:<TAG>
+git clone https://github.com/escuderia-poliposition-usp/AutoDRIVE-F1TENTH-Sim-Racing.git 
+cd AutoDRIVE-F1TENTH-Sim-Racing
 ```
 
-### Push:
+# B) habilitar X11 (para RViz/gedit etc.)
 
-1. Run the image you created in the previous step inside a container:
-```bash
-xhost local:root
-docker run --name autodrive_f1tenth_api --rm -it --entrypoint /bin/bash --network=host --ipc=host -v /tmp/.X11-unix:/tmp.X11-umix:rw --env DISPLAY --privileged --gpus all autodriveecosystem/autodrive_f1tenth_api:<TAG>
-```
+  ```bash
+  xhost +local:root
+  ```
 
-2. In a new terminal window, list all containers and make a note of the desired `CONTAINER ID`:
-```bash
-docker ps -a
-```
+# C) build da imagem e subir o container
 
-3. Commit changes to Docker Hub:
-```bash
-docker commit -m "AutoDRIVE-F1TENTH-Sim-Racing" -a "AutoDRIVE Ecosystem" <CONTAINER ID> autodriveecosystem/autodrive_f1tenth_api:<TAG>
-```
+  ```bash
+    docker compose down
+    docker compose build --no-cache devkit
+    docker compose up -d
+    docker compose ps    # deve mostrar autodrive_f1tenth_api: Up
+  ```
 
-4. Login to Docker Hub:
-```bash
-docker login
-```
+# D) entrar no container
 
-5. Push the container to Docker Hub, once done, you should be able to see your repository on Docker Hub:
-```bash
-docker push autodriveecosystem/autodrive_f1tenth_api:<TAG>
-```
+  ```bash
+    docker compose exec devkit bash
+  ```
 
-## Competition Execution
+# E) compilar o workspace
 
-1. Pull the team's image:
-```bash
-docker pull <TEAM_USERNAME>/<IMAGE_NAME>:<TAG>
-```
+  ```bash
+    source /opt/ros/humble/setup.bash
+    cd /home/autodrive_devkit/ws
+    colcon list
+    colcon build --symlink-install
+    source install/setup.bash
+  ```
 
-2. Run the team's image you pulled in the previous step inside a container:
-```bash
-xhost local:root
-docker run --name autodrive_f1tenth_api --rm -it --entrypoint /bin/bash --network=host --ipc=host -v /tmp/.X11-unix:/tmp.X11-umix:rw --env DISPLAY --privileged --gpus all <TEAM_USERNAME>/<IMAGE_NAME>:<TAG>
-```
+# F) smoke test (URDF)
 
-3. Run the simulator image inside a container, set graphics to `Ultra` quality and vehicle in `Autonomous` mode:
-```bash
-xhost local:root
-docker run --name autodrive_f1tenth_sim --rm -it --entrypoint /bin/bash --network=host --ipc=host -v /tmp/.X11-unix:/tmp.X11-umix:rw --env DISPLAY --privileged --gpus all autodriveecosystem/autodrive_f1tenth_sim:<TAG>
-```
+  ```bash
+    ros2 launch f1tenth_description bringup.launch.py gui:=true
+  ```
 
-4. Begin screen recording (tested with [OBS Studio](https://obsproject.com)).
+## 2.1 Fluxo de desenvolvimento (rápido)
 
-5. Execute a new bash session within the team's container, launch `rqtgraph` for inspection and start recording all data streams:
-```bash
-docker exec -it autodrive_f1tenth_api bash
-ros2 bag record -a -o qualification.bag
-ros2 bag record -a -o competition.bag
-rqtgraph
-```
+Edite arquivos em autodrive_devkit/ws/src/... no host.
 
-6. Enable the communication bridge between simulator and devkit to start the race.
+No container:
 
-7. After the race completion, kill the `rqtgraph`, data recording as well as screen recording processes, and copy the `rosgraph` and `rosbag` file to the host workstation:
-```bash
-docker cp autodrive_f1tenth_api:/home/autodrive_devkit/qualification.bag /home/<USERNAME>
-docker cp autodrive_f1tenth_api:/home/autodrive_devkit/competition.bag /home/<USERNAME>
-docker cp autodrive_f1tenth_api:/home/autodrive_devkit/rosgraph.png /home/<USERNAME>
-```
+  ```bash
+    cd /home/autodrive_devkit/ws
+    colcon build --symlink-install
+    source install/setup.bash
+  ```
 
-## Generally Helpful Docker Tips
+### Relance seus launch e pronto (sem rebuildar a imagem). Se preferir, você pode ignorar o pacote Python no colcon e instalar em modo editável (efeito idêntico ao symlink):
 
-1. To access the container while it is running, execute the following command in a new terminal window to start a new bash session inside the container:
-```bash
-docker exec -it <CONTAINER NAME> bash
-```
+  ```bash
+    touch src/autodrive_f1tenth/COLCON_IGNORE
+    pip3 install -e src/autodrive_f1tenth
+    colcon build --symlink-install --packages-skip autodrive_f1tenth
+  ```
 
-2. To exit the bash session(s), simply execute:
-```bash
-exit
-```
+## compose.yaml esperado (resumo)
 
-3. To kill the container, execute the following command:
-```bash
-docker kill <CONTAINER NAME>
-```
+  ```bash
+    services:
+      devkit:
+        build:
+          context: .
+          dockerfile: autodrive_devkit.Dockerfile
+        image: autodrive_f1tenth_api:dev
+        container_name: autodrive_f1tenth_api
+        network_mode: host
+        ipc: host
+        privileged: true
+        environment:
+          - NVIDIA_VISIBLE_DEVICES=all
+          - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+          - DISPLAY=${DISPLAY}
+          - XAUTHORITY=${XAUTHORITY:-}
+        volumes:
+          - /tmp/.X11-unix:/tmp/.X11-unix:rw
+          - ./autodrive_devkit/ws:/home/autodrive_devkit/ws:rw
+          - ./.colcon-cache:/home/autodrive_devkit/ws/.colcon-cache
+        working_dir: /home/autodrive_devkit/ws
+        restart: unless-stopped
+        command: ["bash", "-lc", "tail -f /dev/null"]
 
-4. To remove the container, simply execute:
-```bash
-docker rm <CONTAINER NAME>
-```
+  ```
 
-5. Running or caching multiple docker images, containers, volumes, and networks can quickly consume a lot of disk space. Hence, it is always a good idea to frequently check Docker disk utilization:
-```bash
-docker system df
-```
+## Diferenças principais vs. upstream
 
-6. To avoid utilizing a lot of disk space, it is a good idea to frequently purge docker resources such as images, containers, volumes, and networks that are unused or dangling (i.e. not tagged or associated with a container). There are several ways with many options to achieve this, please refer to appropriate documentation. The easiest way (but a potentially dangerous one) is to use a single command to clean up all the docker resources (dangling or otherwise):
-```bash
-docker system prune -a
-```
+Layout: criamos um workspace real autodrive_devkit/ws/src/. O pacote autodrive_f1tenth foi movido para lá.
 
-7. After Docker Desktop is installed, Docker CLI commands are by default forwarded to Docker Desktop instead of Docker Engine, and hence you cannot connect to the Docker daemon without running Docker Desktop. In order to avoid this, just switch to the `default` Docker context:
-```bash
-docker context ls
-docker context use default
-```
-> [!NOTE]
-> It is not recommended to use Docker Desktop on the Linux operating system. This is because Docker Desktop creates a virtual machine based on Linux, which is first of all not needed for native (host) Linux OS, and secondly, it sometimes does not expose the necessary access ports for the containers (e.g., trouble with GPU access).
+Novo pacote: adicionamos f1tenth_description (URDF/xacro/launch).
 
-## Citation
+Dockerfile DEV: não copia código; instala Nav2 e utilitários; fixa versões de pip/setuptools/wheel/packaging (e zope-event<5.0) para viabilizar --symlink-install.
 
-We encourage you to read and cite the following papers if you use any part of the competition framework for your research:
+Compose: dev flow com bind-mount do ws, build rápido e shell interativo.
 
-#### [AutoDRIVE: A Comprehensive, Flexible and Integrated Digital Twin Ecosystem for Enhancing Autonomous Driving Research and Education](https://arxiv.org/abs/2212.05241)
-```bibtex
-@article{AutoDRIVE-Ecosystem-2023,
-author = {Samak, Tanmay and Samak, Chinmay and Kandhasamy, Sivanathan and Krovi, Venkat and Xie, Ming},
-title = {AutoDRIVE: A Comprehensive, Flexible and Integrated Digital Twin Ecosystem for Autonomous Driving Research & Education},
-journal = {Robotics},
-volume = {12},
-year = {2023},
-number = {3},
-article-number = {77},
-url = {https://www.mdpi.com/2218-6581/12/3/77},
-issn = {2218-6581},
-doi = {10.3390/robotics12030077}
-}
-```
-This work has been published in **MDPI Robotics.** The open-access publication can be found on [MDPI](https://doi.org/10.3390/robotics12030077).
+Troubleshooting
+Erro --editable ou --uninstall no pacote Python (ament_python)
+Já mitigado no Dockerfile. Garanta também um pyproject.toml no pacote:
 
-#### [AutoDRIVE Simulator: A Simulator for Scaled Autonomous Vehicle Research and Education](https://arxiv.org/abs/2103.10030)
-```bibtex
-@inproceedings{AutoDRIVE-Simulator-2021,
-author = {Samak, Tanmay Vilas and Samak, Chinmay Vilas and Xie, Ming},
-title = {AutoDRIVE Simulator: A Simulator for Scaled Autonomous Vehicle Research and Education},
-year = {2021},
-isbn = {9781450390453},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3483845.3483846},
-doi = {10.1145/3483845.3483846},
-booktitle = {2021 2nd International Conference on Control, Robotics and Intelligent System},
-pages = {1–5},
-numpages = {5},
-location = {Qingdao, China},
-series = {CCRIS'21}
-}
-```
-This work has been published at **2021 International Conference on Control, Robotics and Intelligent System (CCRIS).** The publication can be found on [ACM Digital Library](https://dl.acm.org/doi/abs/10.1145/3483845.3483846).
+
+# autodrive_devkit/ws/src/autodrive_f1tenth/pyproject.toml
+
+  ```bash
+    [build-system]
+    requires = ["setuptools>=65,<66", "wheel<0.42"]
+    build-backend = "setuptools.build_meta"
+  ```
+
+## Fallback rápido:
+
+  ```bash
+    touch src/autodrive_f1tenth/COLCON_IGNORE
+    pip3 install -e src/autodrive_f1tenth
+    colcon build --symlink-install --packages-skip autodrive_f1tenth
+  ```
+
+GUI (gedit/rviz) reclamando de dconf/dbus
+
+A imagem já inclui dbus-x11. Lembre-se do xhost +local:root.
+
+## Permissões (se usou sudo no host):
+
+  ```bash
+    sudo chown -R $USER:$USER autodrive_devkit/ws .colcon-cache
+  ```
+
+# 3 Acessar o ambiente e Listar tópicos
+
+  ```bash
+    docker exec -it autodrive_f1tenth_api bash
+  ```
+
+# 4 ATALHOS DE TERMINAL (aliases)
+
+## Para evitar digitar comandos longos, crie aliases no seu shell.
+
+## 4.1 Como habilitar
+
+
+    ```bash
+
+  # === F1TENTH — instalar/atualizar aliases (host) — versão sem here-doc ===
+  set -e
+
+  # 1) Detecta RC (Zsh → ~/.zshrc ; Bash → ~/.bashrc)
+  if [ -n "${ZSH_VERSION:-}" ] || [ "$(basename -- "${SHELL:-}")" = "zsh" ]; then
+    RC="${ZDOTDIR:-$HOME}/.zshrc"
+  else
+    RC="$HOME/.bashrc"
+  fi
+
+  # 2) Backup
+  mkdir -p "$(dirname "$RC")"
+  touch "$RC"
+  BK="${RC}.bak.$(date +%Y%m%d_%H%M%S)"
+  cp -f "$RC" "$BK" >/dev/null 2>&1 || true
+  echo "[INFO] Backup do RC em: $BK"
+
+  # 3) Remove bloco antigo
+  awk 'BEGIN{p=1} /^# BEGIN F1TENTH ALIASES$/{p=0} {if(p)print} /^# END F1TENTH ALIASES$/{p=1}' "$RC" > "$RC.tmp" && mv "$RC.tmp" "$RC"
+
+  # 4) Anexa bloco novo (via printf, sem here-doc)
+  printf '%s\n' \
+  '# BEGIN F1TENTH ALIASES' \
+  '# Requer estar no diretório da repo com compose.yml quando usar dup_dev/dex_dev.' \
+  '' \
+  "# Sobe/entra no devkit (Docker Compose)" \
+  "alias dup_dev='docker compose up -d'" \
+  "alias dex_dev='command -v xhost >/dev/null 2>&1 && xhost +local:root >/dev/null 2>&1 || true; docker compose exec devkit bash'" \
+  '' \
+  "# Build da imagem do simulador (Dockerfile: autodrive_simulator.Dockerfile)" \
+  "alias dup_sim='docker build \\ " \
+  "  --tag autodriveecosystem/autodrive_f1tenth_sim:latest \\ " \
+  "  -f autodrive_simulator.Dockerfile \\ " \
+  "  .'" \
+  '' \
+  "# Executa o simulador com GUI dentro do container" \
+  "# 1) Faz xhost (host) e monta o XAUTHORITY do host para root do container" \
+  "# 2) Expõe /dev/dri para OpenGL (se disponível)" \
+  "alias dex_sim=' \\ " \
+  "  command -v xhost >/dev/null 2>&1 && xhost +local:root >/dev/null 2>&1 || true; \\ " \
+  "  docker run --name autodrive_f1tenth_sim --rm -it \\ " \
+  "    --entrypoint /bin/bash \\ " \
+  "    --network host --ipc host \\ " \
+  "    -e DISPLAY=\${DISPLAY} \\ " \
+  "    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \\ " \
+  "    -e XAUTHORITY=\${XAUTHORITY:-\$HOME/.Xauthority} \\ " \
+  "    -v \${XAUTHORITY:-\$HOME/.Xauthority}:/root/.Xauthority:ro \\ " \
+  "    -v /dev/dr
+
+     ```
+
+### Recarregue o shell 
+
+  ```bash
+    source ~/.bashrc
+  ```
+
+## Uso Rápido 
+
+## Carregar Simulador 
+
+  ```bash
+  xhost +local:root        # faça uma vez por sessão gráfica
+  dup_sim                  # build da imagem do simulador
+  dex_sim                  # entra no container do simulador
+  # dentro do container:
+  cd /home/autodrive_simulator
+  ./AutoDRIVE\ Simulator.x86_64
+  ```
+
+## Carregar Devkit (em outro terminal)
+
+  ```bash
+  cd ~/AutoDRIVE-F1TENTH-Sim-Racing
+  dup_dev                  # sobe o devkit
+  dex_dev                  # entra no devkit
+  ```
+
+## Licença e crédito
+
+Este fork deriva de AutoDRIVE-F1TENTH-Sim-Racing (AutoDRIVE Ecosystem).
+O README original pode ser encontrado em docs/UPSTREAM_README.md. Mantemos as licenças originais conforme package.xml e LICENSE.
+
