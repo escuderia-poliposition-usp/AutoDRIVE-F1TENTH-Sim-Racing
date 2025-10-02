@@ -7,9 +7,9 @@
     <include>
       <uri>model://ground_plane</uri>
     </include>
-    <!-- <include>
+    <include>
       <uri>model://PistaMonza</uri>
       <pose>0 0 0 0 0 0</pose>
-    </include> -->
+    </include>
   </world>
 </sdf>
