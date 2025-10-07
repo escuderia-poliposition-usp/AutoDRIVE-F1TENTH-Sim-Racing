@@ -247,6 +247,33 @@
   </joint>
 
 
+
+  <!-- ========== RGB-D CAMERA (para RTAB-MAP) ========== -->
+  <link name="front_camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.03 0.03 0.03"/>
+      </geometry>
+      <material name="DarkGray">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.02"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+    </inertial>
+  </link>
+
+  <joint name="joint_front_camera" type="fixed">
+    <parent link="base_link"/>
+    <child link="front_camera_link"/>
+    <!-- Movida mais à frente do LIDAR -->
+    <origin xyz="${lidar_offset_x + 0.075} 0 ${lidar_base_z - 0.02}" rpy="0 0 0"/>
+  </joint>
+
+
     <!-- ======== GAZEBO: SENSOR LiDAR NO laser_link (publica /scan) ======== -->
   <gazebo reference="laser_link">
     <sensor name="lidar_sensor" type="ray">
@@ -351,6 +378,60 @@
     </sensor>
   </gazebo>
 
+  <!-- Sensor de câmera RGB-D -->
+  <gazebo reference="front_camera_link">
+
+    <!-- Câmera RGB -->
+    <sensor name="front_camera_rgb" type="camera">
+      <always_on>true</always_on>
+      <update_rate>30.0</update_rate>
+      <camera>
+        <horizontal_fov>1.3962634</horizontal_fov> <!-- ~80° -->
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>50.0</far>
+        </clip>
+      </camera>
+      <plugin name="front_camera_rgb_plugin" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>~/image_raw:=/autodrive/f1tenth_1/front_camera/image_raw</remapping>
+          <remapping>~/camera_info:=/autodrive/f1tenth_1/front_camera/camera_info</remapping>
+        </ros>
+        <frame_name>front_camera_link</frame_name>
+      </plugin>
+    </sensor>
+
+    <!-- Câmera Depth (simulada via sensor de profundidade) -->
+    <sensor name="front_camera_depth" type="depth">
+      <always_on>true</always_on>
+      <update_rate>30.0</update_rate>
+      <camera>
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>FLOAT32</format>
+        </image>
+        <clip>
+          <near>0.05</near>
+          <far>20.0</far>
+        </clip>
+      </camera>
+      <plugin name="front_camera_depth_plugin" filename="libgazebo_ros_depth_camera.so">
+        <ros>
+          <remapping>~/image_raw:=/autodrive/f1tenth_1/front_camera/depth/image_raw</remapping>
+          <remapping>~/camera_info:=/autodrive/f1tenth_1/front_camera/depth/camera_info</remapping>
+        </ros>
+        <frame_name>front_camera_link</frame_name>
+      </plugin>
+    </sensor>
+
+  </gazebo>
 
   <gazebo>
     <plugin name="f1tenth_ackermann" filename="libgazebo_ros_ackermann_drive.so">
@@ -372,25 +453,6 @@
       <publish_odom_tf>true</publish_odom_tf>
       <odometry_frame>odom</odometry_frame>
       <robot_base_frame>base_link</robot_base_frame>
-    </plugin>
-  </gazebo>
-
-
-  <!-- ============= GAZEBO: Plugin Dynamic-Actuator ============= -->
-  <gazebo>
-    <plugin name="f1tenth_interface_plugin" filename="libf1tenth_interface_plugin.so">
-      <steer_fl_joint>joint_steer_front_left</steer_fl_joint>
-      <steer_fr_joint>joint_steer_front_right</steer_fr_joint>
-      <wheel_rl_joint>joint_wheel_rear_left</wheel_rl_joint>
-      <wheel_rr_joint>joint_wheel_rear_right</wheel_rr_joint>
-
-      <steer_topic>/autodrive/f1tenth_1/steering_command</steer_topic>
-      <throttle_topic>/autodrive/f1tenth_1/throttle_command</throttle_topic>
-      <brake_topic>/autodrive/f1tenth_1/brake_command</brake_topic>
-
-      <k_speed>2.0</k_speed>                 <!-- m/s @ 100% throttle -->
-      <wheel_radius>0.034</wheel_radius>
-      <steer_limit_rad>0.698</steer_limit_rad> <!-- ~40° -->
     </plugin>
   </gazebo>
 

@@ -109,18 +109,24 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': 'true'}.items()
     )
 
-    # === Nav2 bringup (demo) ===
+    # === Nav2 Bringup (Ackermann config) ===
+    nav2_params = os.path.join(pkg_dynsim, 'config', 'nav2_params.yaml')
+
+
+    map_yaml = LaunchConfiguration('map', default='/root/mapa_corrida.yaml')
+
     nav2 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_nav2, 'launch', 'bringup_launch.py')
         ),
         launch_arguments={
-            'map': '/opt/ros/humble/share/nav2_bringup/maps/turtlebot3_world.yaml',
-            'params_file': '/opt/ros/humble/share/nav2_bringup/params/nav2_params.yaml',
+            'map': map_yaml,
+            'params_file': nav2_params,
             'use_sim_time': 'true',
             'autostart': 'true'
         }.items()
     )
+
 
     # Ambiente: silencia warning do Qt dentro do container
     xdg_runtime = SetEnvironmentVariable('XDG_RUNTIME_DIR', '/tmp/runtime-root')
@@ -135,5 +141,5 @@ def generate_launch_description():
         spawn_entity,    # spawn do robô
         sim_bridge,      # seu bringup (inclui RViz)
         slam,            # SLAM toolbox
-        nav2,            # Nav2 demo
+        #nav2,            # Nav2 demo
     ])
