@@ -79,6 +79,10 @@ RUN python3 -m pip install --no-cache-dir --ignore-installed \
     itsdangerous==2.0.1 \
     werkzeug==2.0.3
 
+RUN apt-get update && apt-get install -y \
+    evince xdg-utils less nano vim gedit \
+    && rm -rf /var/lib/apt/lists/*
+
 # ------------------------------------------------------------------
 # Workspace + código
 # ------------------------------------------------------------------
