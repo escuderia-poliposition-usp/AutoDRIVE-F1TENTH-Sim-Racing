@@ -13,10 +13,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_ROOT_USER_ACTION=ignore
 
 # ------------------------------------------------------------------
-# OSRF repo para Gazebo Classic
+# Repos adicionais: OSRF (Gazebo) + habilitar Universe
 # ------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl gnupg lsb-release && \
+      ca-certificates curl gnupg lsb-release software-properties-common && \
+    add-apt-repository -y universe && \
     install -d -m 0755 /etc/apt/keyrings && \
     curl -fsSL https://packages.osrfoundation.org/gazebo.gpg \
       | gpg --dearmor -o /etc/apt/keyrings/gazebo-archive-keyring.gpg && \
@@ -25,13 +26,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       > /etc/apt/sources.list.d/gazebo-stable.list
 
 # ------------------------------------------------------------------
-# Sistema + ROS + Gazebo Classic + integração gazebo_ros
+# Dependências de build do Nav2 (nav2_util, nav2_route e cia)
+#  - Corrigidos nomes p/ Ubuntu 22.04:
+#    * libgraphicsmagick++-dev (não é libgraphicsmagick++1-dev)
+#    * graphicsmagick-imagemagick-compat (não é graphicsmagick-libmagick-dev-compat)
 # ------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # utilitários
     sudo wget curl unzip net-tools nano vim gedit python3-pip \
-    # build
+    # build base
     build-essential cmake git python3-colcon-common-extensions \
+    # gráficos / X11 (úteis p/ testes)
+    xvfb ffmpeg libgdal-dev libsm6 libxext6 dbus-x11 \
     # ROS usuais
     ros-${ROS_DISTRO}-tf-transformations \
     ros-${ROS_DISTRO}-imu-tools \
@@ -39,16 +45,43 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-robot-state-publisher \
     ros-${ROS_DISTRO}-joint-state-publisher-gui \
     ros-${ROS_DISTRO}-robot-localization \
-    # SLAM/Navigation
+    # SLAM/Navigation (testes do nav2_util exigem test_msgs)
+    ros-${ROS_DISTRO}-test-msgs \
+    # Dependências Nav2 (controllers/planners/utils/route)
+    libxtensor-dev \
+    libomp-dev \
+    libbenchmark-dev \
+    libgraphicsmagick++-dev \
+    graphicsmagick-imagemagick-compat \
+    lcov \
+    python3-zmq \
+    libsuitesparse-dev \
+    libceres-dev \
+    nlohmann-json3-dev \
+    libnanoflann-dev \
+    ros-${ROS_DISTRO}-bond \
+    ros-${ROS_DISTRO}-bondcpp \
+    ros-${ROS_DISTRO}-behaviortree-cpp-v3 \
+    ros-${ROS_DISTRO}-ompl \
+    ros-${ROS_DISTRO}-angles \
+    ros-${ROS_DISTRO}-diagnostic-updater \
+    ros-${ROS_DISTRO}-cv-bridge \
     ros-${ROS_DISTRO}-slam-toolbox \
-    ros-${ROS_DISTRO}-navigation2 \
-    ros-${ROS_DISTRO}-nav2-bringup \
-    # Gazebo classic + plugins ROS
+    # Gazebo classic + plugins ROS (para sim/testes)
     gazebo \
     ros-${ROS_DISTRO}-gazebo-ros-pkgs \
-    # GUI/X11
-    xvfb ffmpeg libgdal-dev libsm6 libxext6 dbus-x11 \
  && rm -rf /var/lib/apt/lists/*
+
+# --- VERIFICAÇÕES: garantir dependências antes do build ---
+RUN bash -lc 'source /opt/ros/$ROS_DISTRO/setup.bash && \
+              for PKG in test_msgs bond bondcpp behaviortree_cpp_v3 ompl; do \
+                ros2 pkg list | grep -qx "$PKG" || \
+                (echo "ERRO: pacote ROS $PKG não encontrado após a instalação." >&2; exit 1); \
+              done'
+
+# nanoflann (header principal)
+RUN test -f /usr/include/nanoflann.hpp || \
+    (echo "ERRO: nanoflann.hpp não encontrado; verifique libnanoflann-dev." >&2; exit 1)
 
 # ------------------------------------------------------------------
 # Pinar pip/setuptools/wheel (evita que o colcon quebre com versões novas)
@@ -89,15 +122,17 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /home/autodrive_devkit
 COPY autodrive_devkit/. /home/autodrive_devkit/src/autodrive_devkit
 
-# rosdep
+# rosdep (para cobrir deps restantes do seu código)
 RUN apt-get update && apt-get install -y --no-install-recommends python3-rosdep && rm -rf /var/lib/apt/lists/* \
  && (rosdep init || true) \
  && rosdep update \
  && rosdep install --rosdistro ${ROS_DISTRO} --from-paths src --ignore-src -r -y || echo "rosdep: algumas chaves podem ser opcionais; seguindo."
 
+# ------------------------------------------------------------------
 # Build colcon
+# ------------------------------------------------------------------
 ENV COLCON_PYTHON_EXECUTABLE=/usr/bin/python3
-RUN source /opt/ros/humble/setup.bash && colcon build --symlink-install
+RUN bash -lc 'source /opt/ros/humble/setup.bash && colcon build --symlink-install'
 
 # ------------------------------------------------------------------
 # GAZEBO_* paths (após o build do f1tenth_dynsim)
