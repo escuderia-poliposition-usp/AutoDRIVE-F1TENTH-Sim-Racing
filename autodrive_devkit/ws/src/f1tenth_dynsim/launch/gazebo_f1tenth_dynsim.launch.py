@@ -154,7 +154,7 @@ def generate_launch_description():
         sim_bridge,
         rviz_only,
 
-        # Nav2 container + navigation (sem SLAM e sem localization)
+        # Nav2 container + navigation (sem SLAM , sem localization)
         nav2_container,
         navigation,
     ])
