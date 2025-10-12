@@ -223,34 +223,33 @@ local_costmap:
 global_costmap:
   global_costmap:
     ros__parameters:
-      update_frequency: 1.0
-      publish_frequency: 1.0
-      global_frame: map
-      robot_base_frame: base_link
       use_sim_time: True
-      robot_radius: 0.22
+      global_frame: map
+      robot_base_frame: base_footprint      # (ou base_link, mas seja consistente com o SLAM)
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      rolling_window: True                  # <<< importante
+      track_unknown_space: True
+      width: 30
+      height: 30
       resolution: 0.05
-      track_unknown_space: true
+      always_send_full_costmap: True
       plugins: ["obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
-        enabled: True
         observation_sources: scan
         scan:
           topic: /scan
-          max_obstacle_height: 2.0
-          clearing: True
+          data_type: LaserScan
           marking: True
-          data_type: "LaserScan"
-          raytrace_max_range: 3.0
-          raytrace_min_range: 0.0
-          obstacle_max_range: 2.5
-          obstacle_min_range: 0.0
+          clearing: True
+          obstacle_max_range: 8.0
+          obstacle_min_range: 0.05
+          max_obstacle_height: 2.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.55
-      always_send_full_costmap: True
+        inflation_radius: 0.5
 
 map_server:
   ros__parameters:
