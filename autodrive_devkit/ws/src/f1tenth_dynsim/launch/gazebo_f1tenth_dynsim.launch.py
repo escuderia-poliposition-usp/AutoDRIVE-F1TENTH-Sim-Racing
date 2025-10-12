@@ -3,32 +3,40 @@
 
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, SetEnvironmentVariable
+from launch.actions import (
+    IncludeLaunchDescription, DeclareLaunchArgument, SetEnvironmentVariable, GroupAction
+)
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
+from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.substitutions import LaunchConfiguration, Command
 from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    # === Pacotes ===
-    pkg_desc   = get_package_share_directory('f1tenth_description')   # Xacro do carro
-    pkg_bridge = get_package_share_directory('autodrive_f1tenth')     # seu bridge + RViz
-    pkg_slam   = get_package_share_directory('slam_toolbox')
-    pkg_nav2   = get_package_share_directory('nav2_bringup')
-    pkg_gz_ros = get_package_share_directory('gazebo_ros')
-    pkg_dynsim = get_package_share_directory('f1tenth_dynsim')        # contém worlds/monza.world
+    # ==== Pacotes / paths ====
+    pkg_desc   = get_package_share_directory('f1tenth_description')   # URDF/Xacro do carro
+    pkg_bridge = get_package_share_directory('autodrive_f1tenth')     # bridge + RViz (opcional)
+    pkg_nav2   = get_package_share_directory('nav2_bringup')          # Nav2 bringup
+    pkg_gz_ros = get_package_share_directory('gazebo_ros')            # Gazebo Classic (ROS)
+    pkg_dynsim = get_package_share_directory('f1tenth_dynsim')        # worlds + configs locais
 
-    # === World do Gazebo ===
-    world_file = os.path.join(pkg_dynsim, 'worlds', 'monza.world')
+    world_file   = os.path.join(pkg_dynsim, 'worlds', 'monza.world')
+    nav2_params  = os.path.join(pkg_dynsim, 'config', 'nav2_params.yaml')
+    urdf_xacro   = os.path.join(pkg_desc, 'urdf', 'f1tenth_car.urdf.xacro')
 
-    # === Args ===
+    # ==== Args ====
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
-    use_sim_time = LaunchConfiguration('use_sim_time')
+    use_sim_time     = LaunchConfiguration('use_sim_time')
 
-    # === URDF/Xacro -> robot_description ===
-    urdf_xacro = os.path.join(pkg_desc, 'urdf', 'f1tenth_car.urdf.xacro')
+    start_rviz_arg   = DeclareLaunchArgument('start_rviz',   default_value='true')
+    start_rviz       = LaunchConfiguration('start_rviz')
+
+    start_bridge_arg = DeclareLaunchArgument('start_bridge', default_value='false')  # evite conflito porta 4567
+    start_bridge     = LaunchConfiguration('start_bridge')
+
+    # ==== robot_description via xacro ====
     robot_description = {
         'robot_description': ParameterValue(
             Command(['xacro ', urdf_xacro, ' use_sim_time:=', use_sim_time]),
@@ -36,7 +44,7 @@ def generate_launch_description():
         )
     }
 
-    # === Publicadores de estado e TF ===
+    # ==== State publishers ====
     robot_state_pub = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
@@ -51,20 +59,7 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}],
     )
 
-        # Caminho do YAML (adicione isso onde você já definiu os paths)
-    ekf_yaml  = os.path.join(pkg_dynsim, 'config', 'ekf.yaml')
-
-    # EKF (robot_localization)
-    ekf_node = Node(
-        package='robot_localization',
-        executable='ekf_node',
-        name='ekf_filter_node',
-        output='screen',
-        parameters=[ekf_yaml, {'use_sim_time': use_sim_time}],
-    )
-
-    # === Gazebo (server+client) COM WORLD ===
-    # Passa o argumento 'world' para o launch do gazebo_ros
+    # ==== Gazebo (server+client) com WORLD ====
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_gz_ros, 'launch', 'gazebo.launch.py')
@@ -75,7 +70,7 @@ def generate_launch_description():
         }.items()
     )
 
-    # === Spawn do robô (via tópico robot_description) ===
+    # ==== Spawn do robô (via /robot_description) ====
     spawn_entity = Node(
         package='gazebo_ros',
         executable='spawn_entity.py',
@@ -86,60 +81,80 @@ def generate_launch_description():
             '-entity', 'f1tenth_1',
             '-x', '-0.000202',
             '-y', '-0.003571',
-            # se o modelo não aparece, suba um pouco o z (ex.: 0.05)
-            '-z',  '0.050000',
-            # deixe roll/pitch = 0.0 e só aplique yaw
+            '-z',  '0.05',
             '-Y',  '1.757631',
         ],
     )
 
-    # === Bridge + RViz do projeto (o seu bringup) ===
+    # ==== (Opcional) RViz/bridge do seu pacote ====
     sim_bridge = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_bridge, 'launch', 'simulator_bringup_rviz.launch.py')
         ),
+        condition=IfCondition(start_bridge),
         launch_arguments={'use_sim_time': 'true'}.items()
     )
 
-    # === SLAM toolbox (async) ===
-    slam = IncludeLaunchDescription(
+    rviz_only = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_slam, 'launch', 'online_async_launch.py')
+            os.path.join(pkg_nav2, 'launch', 'rviz_launch.py')
         ),
-        launch_arguments={'use_sim_time': 'true'}.items()
-    )
-
-    # === Nav2 Bringup (Ackermann config) ===
-    nav2_params = os.path.join(pkg_dynsim, 'config', 'nav2_params.yaml')
-
-
-    map_yaml = LaunchConfiguration('map', default='/root/mapa_corrida.yaml')
-
-    nav2 = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_nav2, 'launch', 'bringup_launch.py')),
+        condition=IfCondition(start_rviz),
         launch_arguments={
-            'params_file': nav2_params,
-            'use_sim_time': 'true',
-            'autostart': 'true',
-            'map': map_yaml,  # opcional se for SLAM
+            'use_namespace': 'false',
+            'namespace': '',
         }.items()
     )
 
+    # ==== CONTAINER composable do Nav2 (fundamental quando use_composition:=True) ====
+    nav2_container = Node(
+        package='rclcpp_components',
+        executable='component_container_isolated',
+        name='nav2_container',
+        output='screen',
+        parameters=[{'use_sim_time': True, 'autostart': True}],
+        # remappings típicos do bringup (tf / tf_static)
+        remappings=[('/tf', 'tf'), ('/tf_static', 'tf_static')],
+    )
 
+    # ==== Nav2 (APENAS navigation_launch.py) ====
+    # Com o container acima, o navigation_launch vai carregar:
+    # controller_server, planner_server, costmaps, bt_navigator, velocity_smoother, lifecycle_manager_navigation, etc.
+    navigation = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_nav2, 'launch', 'navigation_launch.py')
+        ),
+        launch_arguments={
+            'namespace':        '',
+            'use_sim_time':     'true',
+            'autostart':        'true',
+            'params_file':      nav2_params,
+            'use_composition':  'True',
+            'use_respawn':      'False',
+            'container_name':   'nav2_container',
+        }.items()
+    )
 
     # Ambiente: silencia warning do Qt dentro do container
     xdg_runtime = SetEnvironmentVariable('XDG_RUNTIME_DIR', '/tmp/runtime-root')
 
     return LaunchDescription([
         use_sim_time_arg,
+        start_rviz_arg,
+        start_bridge_arg,
         xdg_runtime,
+
+        # Robô + sim
         robot_state_pub,
         joint_state_pub,
-        ekf_node,
-        gazebo,          # sobe Gazebo com o MONZA.world
-        spawn_entity,    # spawn do robô
-        sim_bridge,      # seu bringup (inclui RViz)
-        slam,            # SLAM toolbox
-        nav2,            # Nav2 demo
+        gazebo,
+        spawn_entity,
+
+        # Visualização (à sua escolha)
+        sim_bridge,
+        rviz_only,
+
+        # Nav2 container + navigation (sem SLAM e sem localization)
+        nav2_container,
+        navigation,
     ])

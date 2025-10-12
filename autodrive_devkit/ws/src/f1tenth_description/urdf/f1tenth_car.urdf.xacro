@@ -18,6 +18,14 @@
   <xacro:property name="lidar_offset_x" value="0.10"/>      <!-- ~0.09 m atrás da dianteira -->
   <xacro:property name="lidar_base_z" value="0.073"/>       <!-- base do LiDAR -->
 
+  <!-- ===== Novo frame raiz 2D ===== -->
+  <link name="base_footprint"/>
+  <joint name="base_footprint_to_base_link" type="fixed">
+    <parent link="base_footprint"/>
+    <child  link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
   <!-- Link principal do chassi (base_link) -->
   <link name="base_link">
     <!-- Geometria visual: chassi inferior (base) -->
@@ -246,8 +254,6 @@
     <origin xyz="0 0 ${top_chassis_height/2}" rpy="0 0 0"/>
   </joint>
 
-
-
   <!-- ========== RGB-D CAMERA (para RTAB-MAP) ========== -->
   <link name="front_camera_link">
     <visual>
@@ -273,8 +279,7 @@
     <origin xyz="${lidar_offset_x + 0.075} 0 ${lidar_base_z - 0.02}" rpy="0 0 0"/>
   </joint>
 
-
-    <!-- ======== GAZEBO: SENSOR LiDAR NO laser_link (publica /scan) ======== -->
+  <!-- ======== GAZEBO: SENSOR LiDAR NO laser_link (publica /scan) ======== -->
   <gazebo reference="laser_link">
     <sensor name="lidar_sensor" type="ray">
       <always_on>true</always_on>
@@ -314,7 +319,6 @@
       </plugin>
     </sensor>
   </gazebo>
-
 
   <!-- ======== GAZEBO: SENSOR IMU NO imu_link ======== -->
   <gazebo reference="imu_link">
@@ -450,9 +454,9 @@
       <max_speed>2.0</max_speed>
       <!-- ativa publicação de odom e TF -->
       <publish_odom>true</publish_odom>
-      <publish_odom_tf>false</publish_odom_tf>
+      <publish_odom_tf>true</publish_odom_tf>
       <odometry_frame>odom</odometry_frame>
-      <robot_base_frame>base_link</robot_base_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
     </plugin>
   </gazebo>
 
