@@ -252,6 +252,7 @@
     <parent link="base_link"/>
     <child link="imu_link"/>
     <origin xyz="0 0 ${top_chassis_height/2}" rpy="0 0 0"/>
+    
   </joint>
 
   <!-- ========== RGB-D CAMERA (para RTAB-MAP) ========== -->
@@ -382,60 +383,69 @@
     </sensor>
   </gazebo>
 
-  <!-- Sensor de câmera RGB-D -->
-  <gazebo reference="front_camera_link">
+<!-- ======== RGB-D CAMERA (Gazebo Classic + ROS 2 Humble) ======== -->
+<gazebo reference="front_camera_link">
 
-    <!-- Câmera RGB -->
-    <sensor name="front_camera_rgb" type="camera">
-      <always_on>true</always_on>
-      <update_rate>30.0</update_rate>
-      <camera>
-        <horizontal_fov>1.3962634</horizontal_fov> <!-- ~80° -->
-        <image>
-          <width>640</width>
-          <height>480</height>
-          <format>R8G8B8</format>
-        </image>
-        <clip>
-          <near>0.02</near>
-          <far>50.0</far>
-        </clip>
-      </camera>
-      <plugin name="front_camera_rgb_plugin" filename="libgazebo_ros_camera.so">
-        <ros>
-          <remapping>~/image_raw:=/autodrive/f1tenth_1/front_camera/image_raw</remapping>
-          <remapping>~/camera_info:=/autodrive/f1tenth_1/front_camera/camera_info</remapping>
-        </ros>
-        <frame_name>front_camera_link</frame_name>
-      </plugin>
-    </sensor>
+  <!-- Câmera RGB -->
+  <sensor name="rgb_camera" type="camera">
+    <always_on>true</always_on>
+    <update_rate>30</update_rate>
+    <camera>
+      <horizontal_fov>1.047</horizontal_fov> <!-- ~60° -->
+      <image>
+        <width>640</width>
+        <height>480</height>
+        <format>R8G8B8</format>
+      </image>
+      <clip>
+        <near>0.02</near>
+        <far>50.0</far>
+      </clip>
+    </camera>
 
-    <!-- Câmera Depth (simulada via sensor de profundidade) -->
-    <sensor name="front_camera_depth" type="depth">
-      <always_on>true</always_on>
-      <update_rate>30.0</update_rate>
-      <camera>
-        <horizontal_fov>1.3962634</horizontal_fov>
-        <image>
-          <width>640</width>
-          <height>480</height>
-          <format>FLOAT32</format>
-        </image>
-        <clip>
-          <near>0.05</near>
-          <far>20.0</far>
-        </clip>
-      </camera>
-      <plugin name="front_camera_depth_plugin" filename="libgazebo_ros_depth_camera.so">
-        <ros>
-          <remapping>~/image_raw:=/autodrive/f1tenth_1/front_camera/depth/image_raw</remapping>
-          <remapping>~/camera_info:=/autodrive/f1tenth_1/front_camera/depth/camera_info</remapping>
-        </ros>
-        <frame_name>front_camera_link</frame_name>
-      </plugin>
-    </sensor>
+    <plugin name="rgb_camera_plugin" filename="libgazebo_ros_camera.so">
+      <ros>
+        <remapping>~/image_raw:=/camera/rgb/image_raw</remapping>
+        <remapping>~/camera_info:=/camera/rgb/camera_info</remapping>
+      </ros>
+      <frame_name>front_camera_link</frame_name>
+    </plugin>
+  </sensor>
 
-  </gazebo>
+  <!-- Câmera de profundidade (depth) -->
+  <sensor name="depth_camera" type="depth">
+    <always_on>true</always_on>
+    <update_rate>30</update_rate>
+    <camera>
+      <horizontal_fov>1.047</horizontal_fov>
+      <image>
+        <width>640</width>
+        <height>480</height>
+        <format>FLOAT32</format> <!-- depth em metros -->
+      </image>
+      <clip>
+        <near>0.05</near>
+        <far>20.0</far>
+      </clip>
+    </camera>
+
+    <plugin name="depth_camera_plugin" filename="libgazebo_ros_depth_camera.so">
+      <ros>
+        <remapping>~/image_raw:=/camera/depth/image_raw</remapping>
+        <remapping>~/camera_info:=/camera/depth/camera_info</remapping>
+        <!-- se quiser pointcloud também:
+        <remapping>~/points:=/camera/depth/points</remapping>
+        -->
+      </ros>
+      <frame_name>front_camera_link</frame_name>
+      <!-- alguns builds aceitam estes flags; pode omitir se não reconhecer:
+      <output_type>sensor_msgs/Image</output_type>
+      -->
+    </plugin>
+  </sensor>
+
+</gazebo>
+
 
   <gazebo>
     <plugin name="f1tenth_ackermann" filename="libgazebo_ros_ackermann_drive.so">
