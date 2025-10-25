@@ -46,7 +46,7 @@ install(PROGRAMS
   scripts/twist_to_actuators.py
   DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY launch worlds models config 
+install(DIRECTORY launch worlds models config maps graphs
   DESTINATION share/${PROJECT_NAME})
 
 ament_package()
